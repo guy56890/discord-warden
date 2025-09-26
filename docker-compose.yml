@@ -1,6 +1,4 @@
 version: "3"
 services:
-    build: 
-        context: .
     environment:
         DISCORD_TOKEN: ${DISCORD_TOKEN}
