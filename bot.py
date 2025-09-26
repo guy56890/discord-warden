@@ -30,22 +30,12 @@ async def on_ready():
     bot.change_presence(status=discord.Status.offline)
     print(f"Logged in as {bot.user}")
 
-@bot.tree.command(name="redeploy", description="Forcefully update the bot to the newest commit on GitHub")
+@bot.tree.command(name="redeploy")
 async def redeploy(interaction: discord.Interaction):
-
-    if interaction.user.id != 554691397601591306:  # Replace with your Discord user ID
-        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
-        return
-
-    await interaction.response.defer(ephemeral=True)
-    await interaction.response.send_message("Triggerer deploy… 🚀")
+    await interaction.response.defer()  # “Jeg svarer snart”
     async with aiohttp.ClientSession() as session:
         async with session.post(WEBHOOK_URL) as resp:
-            if resp.status == 200:
-                await interaction.response.send_message("Portainer webhook succes — opdatering startet.")
-            else:
-                text = await resp.text()
-                await interaction.response.send_message(f"Fejl: {resp.status} — {text}")
+            await interaction.followup.send("Portainer webhook succes ✅")
 
 @bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
 async def coinflip(interaction: discord.Interaction):
