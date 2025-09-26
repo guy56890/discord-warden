@@ -1,5 +1,1 @@
 discord.py
-os
-random
-datetime
-asyncio
