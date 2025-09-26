@@ -15,6 +15,8 @@ bot = commands.Bot(command_prefix="$", intents=intents)
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
+    bot.status = discord.Status.invisible
+    await bot.tree.sync()
 
 # Classic text command (still works)
 @bot.command()
