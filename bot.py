@@ -1,5 +1,3 @@
-# This example requires the 'message_content' intent.
-
 import os
 import discord
 from discord.ext import commands
@@ -14,9 +12,13 @@ bot = commands.Bot(command_prefix="$", intents=intents)
 
 @bot.event
 async def on_ready():
+
+    await bot.get_channel(1290602327824142378).send("Bot is online")
+
     print(f'We have logged in as {bot.user}')
-    bot.status = discord.Status.invisible
+    await bot.change_presence(status = discord.Status.invisible, activity = discord.Game("big brother"))
     await bot.tree.sync()
+    
 
 # Classic text command (still works)
 @bot.command()
@@ -29,6 +31,7 @@ async def hello(ctx):
 @bot.tree.command(name="funny", description="Do something funny!")
 async def funny(interaction: discord.Interaction):
     await interaction.response.send_message("Why did the Python programmer wear glasses? Because they couldn't C#.")
+
 
 
 
