@@ -59,4 +59,15 @@ async def coinflip(interaction: discord.Interaction):
         return
     
     await interaction.followup.send(f"Flipping a coin for {member.mention}...")
+
+@bot.tree.command(name="test", description="this is a new test command")
+async def coinflip(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    member = interaction.user
+    guild = interaction.guild
+    admin_role = guild.get_role(ADMIN_ROLE_ID)
+
+    
+    await interaction.followup.send(f"doo be doo")
 bot.run(TOKEN)
