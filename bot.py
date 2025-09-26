@@ -38,6 +38,8 @@ async def coinflip(interaction: discord.Interaction):
     if not admin_role:
         await interaction.followup.send("Admin role not found. Configure ADMIN_ROLE_ID.")
         return
+    
+    await interaction.followup.send(f"Flipping a coin for {member.mention}...")
 
     result = random.choice(["heads", "tails"])
 
@@ -51,8 +53,8 @@ async def coinflip(interaction: discord.Interaction):
             await interaction.followup.send(f"Error: {e}")
     else:
         try:
-            await member.timeout(discord.utils.utcnow() + timedelta(hours=2))
             await interaction.followup.send("🪙 Tails! You're timed out for 2 hours.")
+            await member.timeout(discord.utils.utcnow() + timedelta(hours=2))
         except Exception as e:
             await interaction.followup.send(f"Error: {e}")
 
