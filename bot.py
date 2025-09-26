@@ -30,14 +30,6 @@ async def on_ready():
     bot.change_presence(status=discord.Status.offline)
     print(f"Logged in as {bot.user}")
 
-@bot.tree.command(name="redeploy")
-async def redeploy(interaction: discord.Interaction):
-    await interaction.response.defer()  # “Jeg svarer snart”
-    async with aiohttp.ClientSession() as session:
-        async with session.post(WEBHOOK_URL) as resp:
-            print(resp)
-            await interaction.followup.send("Portainer webhook succes ✅")
-
 @bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
 async def coinflip(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
