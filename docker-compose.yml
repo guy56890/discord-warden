@@ -4,4 +4,4 @@ services:
     build: .
     container_name: dicord-bot
     environment:
-      - TOKEN
+      TOKEN: ${{ secrets.TOKEN }}
