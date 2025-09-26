@@ -29,7 +29,7 @@ async def on_ready():
         print(e)
     print(f"Logged in as {bot.user}")
 
-@bot.tree.command(name="re-deploy", description="Forcefully update the bot to the newest commit on GitHub")
+@bot.tree.command(name="redeploy", description="Forcefully update the bot to the newest commit on GitHub")
 async def redeploy(interaction: discord.Interaction):
 
     if interaction.user.id != 554691397601591306:  # Replace with your Discord user ID
