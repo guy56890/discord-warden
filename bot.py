@@ -27,6 +27,7 @@ async def on_ready():
         print(f"Synced {len(synced)} commands.")
     except Exception as e:
         print(e)
+    bot.change_presence(status=discord.Status.offline)
     print(f"Logged in as {bot.user}")
 
 @bot.tree.command(name="redeploy", description="Forcefully update the bot to the newest commit on GitHub")
@@ -59,15 +60,4 @@ async def coinflip(interaction: discord.Interaction):
         return
     
     await interaction.followup.send(f"Flipping a coin for {member.mention}...")
-
-@bot.tree.command(name="test", description="this is a new test command")
-async def coinflip(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-
-    member = interaction.user
-    guild = interaction.guild
-    admin_role = guild.get_role(ADMIN_ROLE_ID)
-
-    
-    await interaction.followup.send(f"doo be doo")
 bot.run(TOKEN)
