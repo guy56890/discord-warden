@@ -2,7 +2,7 @@ version: "3"
 services:
     discordbot:
     build: .
-    container_name: Simon-DiscordBot
+    container_name: discord-bot
     environment:
     - DISCORD_TOKEN=${DISCORD_TOKEN}
     restart: unless-stopped
