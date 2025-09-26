@@ -4,26 +4,30 @@ import os
 import discord
 from discord.ext import commands
 
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="$", intents=intents)
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    print(f'We have logged in as {bot.user}')
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
+# Classic text command (still works)
+@bot.command()
+async def hello(ctx):
+    if ctx.author.id != 554691397601591306:
         return
-    
-    if message.author.id != 554691397601591306:
-        return
+    await ctx.send("Hello!")
 
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
+# Slash command (requires discord.py 2.0+ or py-cord)
+@bot.tree.command(name="funny", description="Do something funny!")
+async def funny(interaction: discord.Interaction):
+    await interaction.response.send_message("Why did the Python programmer wear glasses? Because they couldn't C#.")
 
-client.run(TOKEN)
+
+
+bot.run(TOKEN)
