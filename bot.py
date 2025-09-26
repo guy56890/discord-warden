@@ -40,22 +40,4 @@ async def coinflip(interaction: discord.Interaction):
         return
     
     await interaction.followup.send(f"Flipping a coin for {member.mention}...")
-
-    result = random.choice(["heads", "tails"])
-
-    if result == "heads":
-        try:
-            await member.add_roles(admin_role)
-            await interaction.followup.send("🪙 Heads! You get admin for 30 seconds.")
-            await asyncio.sleep(30)
-            await member.remove_roles(admin_role)
-        except Exception as e:
-            await interaction.followup.send(f"Error: {e}")
-    else:
-        try:
-            await interaction.followup.send("🪙 Tails! You're timed out for 2 hours.")
-            await member.timeout(discord.utils.utcnow() + timedelta(hours=2))
-        except Exception as e:
-            await interaction.followup.send(f"Error: {e}")
-
 bot.run(TOKEN)
