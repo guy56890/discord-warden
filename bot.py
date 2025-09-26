@@ -21,7 +21,7 @@ async def on_ready():
 async def hello(ctx):
     if ctx.author.id != 554691397601591306:
         return
-    await ctx.send("Hello!")
+    await ctx.send("Hello! how are you")
 
 # Slash command (requires discord.py 2.0+ or py-cord)
 @bot.tree.command(name="funny", description="Do something funny!")
