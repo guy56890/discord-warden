@@ -15,8 +15,7 @@ async def on_ready():
 
     await bot.get_channel(1290602327824142378).send("Bot is online")
 
-    print(f'We have logged in as {bot.user}')
-    await bot.change_presence(status = discord.Status.invisible, activity = discord.Game("big brother"))
+    await bot.change_presence(status = discord.Status.offline, activity = discord.Game("big brother"))
     await bot.tree.sync()
     
 
