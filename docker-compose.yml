@@ -1,4 +1,7 @@
-version: "3"
+version: "3.8"
 services:
-    build: 
+  main:
+    build: .
+    container_name: dicord-bot
     environment:
+      - TOKEN
