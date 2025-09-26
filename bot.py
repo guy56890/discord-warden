@@ -51,7 +51,7 @@ async def coinflip(interaction: discord.Interaction):
             await interaction.followup.send(f"Error: {e}")
     else:
         try:
-            await member.timeout(discord.utils.utcnow() + discord.timedelta(hours=2))
+            await member.timeout(discord.utils.utcnow() + timedelta(hours=2))
             await interaction.followup.send("🪙 Tails! You're timed out for 2 hours.")
         except Exception as e:
             await interaction.followup.send(f"Error: {e}")
