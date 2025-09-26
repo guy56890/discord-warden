@@ -37,4 +37,17 @@ async def redeploy(interaction: discord.Interaction):
         async with session.post(WEBHOOK_URL) as resp:
             await interaction.followup.send("Portainer webhook succes ✅")
 
+@bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
+async def coinflip(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    member = interaction.user
+    guild = interaction.guild
+    admin_role = guild.get_role(ADMIN_ROLE_ID)
+
+    if not admin_role:
+        await interaction.followup.send("Admin role not found. Configure ADMIN_ROLE_ID.")
+        return
+    
+    await interaction.followup.send(f"Flipping a coin for {member.mention}...")
 bot.run(TOKEN)
