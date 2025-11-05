@@ -55,6 +55,7 @@ async def emoji_cmd(interaction: discord.Interaction, user: discord.User, emoji:
 
 @bot.tree.command(name="toggle_fish", description="Start or stop the fish bombardement of Asbjørn")
 async def emoji_cmd(interaction: discord.Interaction):
+    global fish_toggle
     if interaction.user.id != AUTHORIZED_ID:
         await interaction.response.send_message("You’re not authorized to use this command.", ephemeral=True)
         return
