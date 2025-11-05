@@ -74,7 +74,7 @@ async def on_message(message):
         return
 
     if message.author.id == 426986093355859968 and fish_toggle:
-        for fish_emoji in fish_emojis.values():
+        for fish_emoji in fish_emojis:
             try:
                 await message.add_reaction(fish_emoji)
             except discord.HTTPException:
