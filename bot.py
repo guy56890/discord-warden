@@ -1,7 +1,7 @@
 import os
 import discord
 from discord import app_commands
-from discord.ext import commands, task
+from discord.ext import commands, tasks
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -132,7 +132,7 @@ async def shadow(interaction: discord.Interaction, user: discord.Member):
         app_commands.CommandPermission(id=AUTHORIZED_SHADOW_ID, type=app_commands.CommandPermissionType.user, permission=True)
     ])
 
-@task.loop(minutes=5)
+@tasks.loop(minutes=5)
 async def periodic_task():
     channel = bot.get_channel(1435613283141947392)
     if not channel:
