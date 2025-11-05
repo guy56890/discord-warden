@@ -14,6 +14,8 @@ bot = commands.Bot(command_prefix="$", intents=intents)
 
 AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis
 user_emojis = {}  # user_id: emoji
+fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬"}
+fish_toggle = False
 
 
 @bot.event
@@ -51,11 +53,31 @@ async def emoji_cmd(interaction: discord.Interaction, user: discord.User, emoji:
         user_emojis[user.id] = emoji
         await interaction.response.send_message(f"Set emoji {emoji} for {user.mention}.", ephemeral=True)
 
+@bot.tree.command(name="toggle_fish", description="Start or stop the fish bombardement of Asbjørn")
+async def emoji_cmd(interaction: discord.Interaction):
+    if interaction.user.id != AUTHORIZED_ID:
+        await interaction.response.send_message("You’re not authorized to use this command.", ephemeral=True)
+        return
+
+    if not fish_toggle:
+        fish_toggle = True
+        await interaction.response.send_message(f"Started the fish bombardement of Asbjørn!")
+
+    else:
+        fish_toggle = False
+        await interaction.response.send_message(f"Stopped the fish bombardement of Asbjørn!")
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
+
+    if message.author.id == 426986093355859968 and fish_toggle:
+        for fish_emoji in fish_emojis.values():
+            try:
+                await message.add_reaction(fish_emoji)
+            except discord.HTTPException:
+                continue
 
     emoji = user_emojis.get(message.author.id)
     if emoji:
