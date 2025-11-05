@@ -14,7 +14,20 @@ bot = commands.Bot(command_prefix="$", intents=intents)
 
 AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis
 user_emojis = {}  # user_id: emoji
-fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬"}
+fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬",  "🐟",  # fish
+    "🦑",  # squid
+    "🦐",  # shrimp
+    "🦞",  # lobster
+    "🦀",  # crab
+    "🐙",  # octopus
+    "🐋",  # whale
+    "🐳",  # spouting whale
+    "🪼",  # jellyfish
+    "🪸",  # coral
+    "🐚",  # spiral shell
+    "🐌",  # snail (sometimes aquatic)
+    "🦭",  # seal (marine)}
+}
 fish_toggle = False
 
 
