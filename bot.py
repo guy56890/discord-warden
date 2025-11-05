@@ -20,24 +20,30 @@ fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬", "🦑", "🦐", "🦞", "
 fish_toggle = False
 shadowed_users = {}  # user_id -> last known status
 
-DATA_FILE = "data.json"
-
 # --- Data persistence ---
+DATA_FILE = "/usr/simon/discord-bot/data.json"
+
 def load_data():
     global user_emojis, fish_toggle, shadowed_users
-    try:
-        with open(DATA_FILE, "r") as f:
-            data = json.load(f)
-            user_emojis = {int(k): v for k, v in data.get("user_emojis", {}).items()}
-            fish_toggle = data.get("fish_toggle", False)
-            shadowed_users_raw = data.get("shadowed_users", {})
-            shadowed_users = {int(k): discord.Status[s] for k, s in shadowed_users_raw.items()}
-    except FileNotFoundError:
-        user_emojis = {}
-        fish_toggle = False
-        shadowed_users = {}
+    # Make sure the directory exists
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+
+    # Create the file if it doesn't exist
+    if not os.path.isfile(DATA_FILE):
+        with open(DATA_FILE, "w") as f:
+            json.dump({"user_emojis": {}, "fish_toggle": False, "shadowed_users": {}}, f, indent=4)
+
+    # Load the data
+    with open(DATA_FILE, "r") as f:
+        data = json.load(f)
+        user_emojis = {int(k): v for k, v in data.get("user_emojis", {}).items()}
+        fish_toggle = data.get("fish_toggle", False)
+        shadowed_users_raw = data.get("shadowed_users", {})
+        shadowed_users = {int(k): discord.Status[s] for k, s in shadowed_users_raw.items()}
 
 def save_data():
+    # Make sure the directory exists (in case deleted)
+    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     data = {
         "user_emojis": {str(k): v for k, v in user_emojis.items()},
         "fish_toggle": fish_toggle,
@@ -45,6 +51,8 @@ def save_data():
     }
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
+
+
 
 # --- Bot events ---
 @bot.event
