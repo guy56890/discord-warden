@@ -128,8 +128,7 @@ async def shadow(interaction: discord.Interaction, user: discord.Member):
 @tasks.loop(minutes=5)
 async def periodic_task():
     channel = bot.get_channel(1435613283141947392)
-    if not channel:
-        return
+    await channel.send("Checking shadowed members.")
 
     for user_id, last in shadowed_users.items():
         user = channel.guild.get_member(user_id)
