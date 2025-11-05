@@ -111,7 +111,6 @@ AUTHORIZED_SHADOW_ID = 554691397601591306  # same as before, only you can use th
 @bot.tree.command(
     name="shadow",
     description="Add a user to the shadow list",
-    default_permission=False  # invisible to everyone by default
 )
 @app_commands.describe(user="The user to shadow")
 async def shadow(interaction: discord.Interaction, user: discord.Member):
@@ -125,12 +124,6 @@ async def shadow(interaction: discord.Interaction, user: discord.Member):
     }
     await interaction.response.send_message(f"Now shadowing {user.name}", ephemeral=True)
 
-    # Optional: sync permissions so only you can see it
-    guild = interaction.guild
-    command = await bot.tree.fetch_command("shadow", guild=guild)
-    await command.permissions.set([
-        app_commands.CommandPermission(id=AUTHORIZED_SHADOW_ID, type=app_commands.CommandPermissionType.user, permission=True)
-    ])
 
 @tasks.loop(minutes=5)
 async def periodic_task():
