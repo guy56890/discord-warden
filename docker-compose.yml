@@ -3,6 +3,8 @@ services:
   main:
     build: .
     container_name: dicord-bot
+    volumes: 
+      - discord-bot-data:/discord-bot/data
     environment:
       - DISCORD_TOKEN
       - PORTAINER_WEBHOOK

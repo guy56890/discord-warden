@@ -21,7 +21,7 @@ fish_toggle = False
 shadowed_users = {}  # user_id -> last known status
 
 # --- Data persistence ---
-DATA_FILE = "/usr/simon/discord-bot/data.json"
+DATA_FILE = "/discord-bot/data/data.json"
 
 def load_data():
     global user_emojis, fish_toggle, shadowed_users
