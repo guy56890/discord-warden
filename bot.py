@@ -59,7 +59,7 @@ async def emoji_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("You’re not authorized to use this command.", ephemeral=True)
         return
 
-    if not fish_toggle:
+    if fish_toggle != True:
         fish_toggle = True
         await interaction.response.send_message(f"Started the fish bombardement of Asbjørn!")
 
