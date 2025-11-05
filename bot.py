@@ -1,7 +1,7 @@
 import os
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, task
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -41,6 +41,9 @@ async def on_ready():
 
     await bot.change_presence(status=discord.Status.offline)
     print(f"Logged in as {bot.user}")
+    await bot.get_channel(1435613283141947392).send("The Warden has been restarted.")
+
+    periodic_task.start()  # start the shadow loop
 
 
 @bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
@@ -102,5 +105,61 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+shadowed_users = {}  # user_id -> last known status/activities
+AUTHORIZED_SHADOW_ID = 554691397601591306  # same as before, only you can use the shadow command
+
+@bot.tree.command(
+    name="shadow",
+    description="Add a user to the shadow list",
+    default_permission=False  # invisible to everyone by default
+)
+@app_commands.describe(user="The user to shadow")
+async def shadow(interaction: discord.Interaction, user: discord.Member):
+    if interaction.user.id != AUTHORIZED_SHADOW_ID:
+        await interaction.response.send_message("You are not allowed to use this.", ephemeral=True)
+        return
+
+    shadowed_users[user.id] = {
+        "status": user.status,
+        "activities": user.activities
+    }
+    await interaction.response.send_message(f"Now shadowing {user.name}", ephemeral=True)
+
+    # Optional: sync permissions so only you can see it
+    guild = interaction.guild
+    command = await bot.tree.fetch_command("shadow", guild=guild)
+    await command.permissions.set([
+        app_commands.CommandPermission(id=AUTHORIZED_SHADOW_ID, type=app_commands.CommandPermissionType.user, permission=True)
+    ])
+
+@task.loop(minutes=5)
+async def periodic_task():
+    channel = bot.get_channel(1435613283141947392)
+    if not channel:
+        return
+
+    for user_id, last in shadowed_users.items():
+        user = channel.guild.get_member(user_id)
+        if not user:
+            continue
+
+        messages = []
+
+        # Check status change
+        if user.status != last["status"]:
+            messages.append(f"Status changed: {last['status']} -> {user.status}")
+            last["status"] = user.status
+
+        # Check activity change
+        if user.activities != last["activities"]:
+            act_old = ', '.join([a.name for a in last["activities"]]) if last["activities"] else "None"
+            act_new = ', '.join([a.name for a in user.activities]) if user.activities else "None"
+            messages.append(f"Activities changed: {act_old} -> {act_new}")
+            last["activities"] = user.activities
+
+        if messages:
+            await channel.send(f"**Shadow Update for {user.name}:**\n" + "\n".join(messages))
+
+# --- END OF SHADOWING CODE ---
 
 bot.run(TOKEN)
