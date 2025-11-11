@@ -103,11 +103,16 @@ async def on_message(message):
 
 wasLastOffline = False
 
-@bot.tree.command(name="server_status", description="Monitor or display info for a Minecraft server")
+@bot.tree.command(
+    name="server_status",
+    description="Monitor or display info for a Minecraft server"
+)
 @app_commands.describe(ip="The IP of the Minecraft server to monitor (e.g. play.example.com)")
 async def server_status(interaction: discord.Interaction, ip: str):
     if interaction.user.id != AUTHORIZED_ID:
-        await interaction.response.send_message("You’re not authorized to use this command.", ephemeral=True)
+        await interaction.response.send_message(
+            "You’re not authorized to use this command.", ephemeral=True
+        )
         return
 
     await interaction.response.defer()
@@ -120,15 +125,14 @@ async def server_status(interaction: discord.Interaction, ip: str):
     ]
 
     banner_image = "https://cdn.discordapp.com/banners/1421040299450568754/46fd58e5cc7729988520c67e6daa0819?size=1024"
-
     was_last_offline = False
 
     async def make_embed(online, status=None):
         nonlocal was_last_offline
         now = int(time.time())
 
+        # Extract server name and version safely
         if status:
-            # Extract readable name and version
             try:
                 desc = getattr(status.description, "get", lambda k, d=None: d)("text", str(status.description))
             except Exception:
@@ -141,29 +145,28 @@ async def server_status(interaction: discord.Interaction, ip: str):
 
         embed = discord.Embed(
             title=f"🎮 {server_name}",
-            description=f"**Address:** `{ip}`\n**Version:** `{server_version}`\n**Type:**`Java Edition, Vanilla`",
+            description=f"**Address:** `{ip}`\n**Version:** `{server_version}`\n**Type:** `Java Edition, Vanilla`",
             color=discord.Color.green() if online else discord.Color.red()
         )
 
         if online and status:
             if was_last_offline:
-                interaction.channel.send("<@1316429425847308449>", timeout=1)
-                was_last_offline = False
+                was_last_offline = False  # reset offline flag
 
             embed.add_field(name="🟢 Status", value="ONLINE\n\u200b", inline=True)
             embed.add_field(name="👥 Players", value=f"`{status.players.online}` / `{status.players.max}`", inline=True)
             embed.add_field(name="📡 Ping", value=f"`{round(status.latency)} ms`", inline=True)
             embed.add_field(name="📜 Rules", value="\n".join(SERVER_RULES), inline=False)
 
-
             if status.players.sample:
                 names = ", ".join(p.name for p in status.players.sample)
                 embed.add_field(name="Online players:", value=f"> {names}", inline=False)
+
         else:
             embed.add_field(name="🔴 Status", value="OFFLINE\n\u200b", inline=False)
             embed.add_field(name="📜 Rules", value="\n".join(SERVER_RULES), inline=False)
 
-            # Notify all ServerManager role members if the server just went offline
+            # DM all ServerManager role members if server just went offline
             if not was_last_offline:
                 try:
                     guild = bot.get_guild(GUILD_ID)
@@ -201,15 +204,20 @@ async def server_status(interaction: discord.Interaction, ip: str):
     embed = await make_embed(online, status)
     msg = await interaction.followup.send(embed=embed)
 
+    # Update loop (30s interval)
     async def update_status():
         while True:
             await asyncio.sleep(30)
             try:
+                # stop if message deleted
                 await msg.channel.fetch_message(msg.id)
             except discord.NotFound:
                 print(f"Message for {ip} deleted — stopping update loop.")
                 return
+            except discord.HTTPException:
+                continue  # try again next iteration
 
+            # Fetch server status
             try:
                 server = JavaServer.lookup(ip)
                 status = server.status()
@@ -218,13 +226,17 @@ async def server_status(interaction: discord.Interaction, ip: str):
                 online = False
                 status = None
 
+            # Update embed
             new_embed = await make_embed(online, status)
-            if msg:
+            try:
                 await msg.edit(embed=new_embed)
+            except discord.NotFound:
+                print(f"Message for {ip} deleted during edit — stopping update loop.")
+                return
+            except discord.HTTPException:
+                continue
 
     bot.loop.create_task(update_status())
-
-
 
 
 @bot.tree.command(name="emoji", description="Add or remove a user's emoji reaction")
