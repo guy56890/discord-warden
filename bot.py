@@ -219,7 +219,8 @@ async def server_status(interaction: discord.Interaction, ip: str):
                 status = None
 
             new_embed = await make_embed(online, status)
-            await msg.edit(embed=new_embed)
+            if msg:
+                await msg.edit(embed=new_embed)
 
     bot.loop.create_task(update_status())
 
