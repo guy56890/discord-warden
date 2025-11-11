@@ -3,6 +3,7 @@ import json
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+from mcstatus import JavaServer
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -98,6 +99,96 @@ async def on_message(message):
 async def coinflip(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await interaction.followup.send(f"Flipping a coin for {interaction.user.mention}...")
+
+@bot.tree.command(name="server_status", description="Monitor a Minecraft server in real-time")
+@app_commands.describe(ip="The IP of the Minecraft server to monitor (e.g. play.example.com)")
+async def server_status(interaction: discord.Interaction, ip: str):
+    if interaction.user.id != AUTHORIZED_ID:
+        await interaction.response.send_message("You’re not authorized to use this command.", ephemeral=True)
+        return
+
+    await interaction.response.defer()
+    import time, asyncio
+
+    async def make_embed(online, status=None):
+        embed = discord.Embed(
+            title="🎮 Minecraft Server Monitor",
+            description=f"**Address:** `{ip}`",
+            color=discord.Color.green() if online else discord.Color.red()
+        )
+
+        if online and status:
+            embed.add_field(
+                name="Status",
+                value="🟢 **Online**\n\u200b",
+                inline=True
+            )
+            embed.add_field(
+                name="Players",
+                value=f"**{status.players.online} / {status.players.max}**",
+                inline=True
+            )
+            embed.add_field(
+                name="Ping",
+                value=f"**{round(status.latency)} ms**",
+                inline=True
+            )
+
+            if status.players.sample:
+                names = ", ".join(p.name for p in status.players.sample)
+                embed.add_field(
+                    name="Currently Online",
+                    value=f"> {names}",
+                    inline=False
+                )
+        else:
+            embed.add_field(name="Status", value="🔴 **Offline**\n\u200b", inline=False)
+
+        now = int(time.time())
+        embed.set_footer(text=f"By guy56890 ")
+        embed.add_field(
+            name="Last Update",
+            value=f"<t:{now}:R>",
+            inline=False
+        )
+
+        return embed
+
+    # initial fetch
+    try:
+        server = JavaServer.lookup(ip)
+        status = server.status()
+        online = True
+    except Exception:
+        online = False
+        status = None
+
+    embed = await make_embed(online, status)
+    msg = await interaction.followup.send(embed=embed)
+
+    async def update_status():
+        while True:
+            await asyncio.sleep(30)
+            try:
+                # stop if deleted
+                try:
+                    await msg.channel.fetch_message(msg.id)
+                except discord.NotFound:
+                    print(f"Message for {ip} deleted — stopping update loop.")
+                    return
+
+                server = JavaServer.lookup(ip)
+                status = server.status()
+                online = True
+            except Exception:
+                online = False
+                status = None
+
+            new_embed = await make_embed(online, status)
+            await msg.edit(embed=new_embed)
+
+    bot.loop.create_task(update_status())
+
 
 @bot.tree.command(name="emoji", description="Add or remove a user's emoji reaction")
 @app_commands.describe(user="The user to modify", emoji="The emoji to assign (leave blank to remove)")
