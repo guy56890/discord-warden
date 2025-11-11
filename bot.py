@@ -150,6 +150,8 @@ async def server_status(interaction: discord.Interaction, ip: str):
             embed.add_field(name="🟢 Status", value="ONLINE\n\u200b", inline=True)
             embed.add_field(name="👥 Players", value=f"`{status.players.online}` / `{status.players.max}`", inline=True)
             embed.add_field(name="📡 Ping", value=f"`{round(status.latency)} ms`", inline=True)
+            embed.add_field(name="📜 Rules", value="\n".join(SERVER_RULES), inline=False)
+
 
             if status.players.sample:
                 names = ", ".join(p.name for p in status.players.sample)
