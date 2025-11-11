@@ -96,14 +96,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 wasLastOffline = False
-
-# --- Slash commands ---
-@bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
-async def coinflip(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    await interaction.followup.send(f"Flipping a coin for {interaction.user.mention}...")
-
-@bot.tree.command(name="server_status", description="Monitor a Minecraft server in real-time")
+@bot.tree.command(name="server_status", description="Monitor or display info for a Minecraft server")
 @app_commands.describe(ip="The IP of the Minecraft server to monitor (e.g. play.example.com)")
 async def server_status(interaction: discord.Interaction, ip: str):
     if interaction.user.id != AUTHORIZED_ID:
@@ -113,66 +106,63 @@ async def server_status(interaction: discord.Interaction, ip: str):
     await interaction.response.defer()
     import time, asyncio, random
 
+    SERVER_RULES = [
+        "Don't grief anyone",
+        "No cheats, hacks, x-rays or exploits",
+        "Don't be a dickhead",
+        "Don't hop on end before we all agree to do so",
+    ]
+    banner_image_online = "https://i.imgur.com/7QZ6xOa.png"
+    banner_image_offline = "https://i.imgur.com/XVbRiV2.png"
+
     was_last_offline = False
-    banner_image = "https://cdn.discordapp.com/banners/1421040299450568754/46fd58e5cc7729988520c67e6daa0819?size=512"  # Replace with your preferred banner
 
     async def make_embed(online, status=None):
         nonlocal was_last_offline
+        now = int(time.time())
+
+        # Extract name/version if possible
+        if status:
+            server_name = getattr(status.description, "get", lambda k, d=None: d)("text", str(status.description))
+            server_version = getattr(status.version, "name", "Unknown")
+        else:
+            server_name = "Unknown Server"
+            server_version = "Unknown Version"
+
         embed = discord.Embed(
-            title="🎮 **Minecraft Server Monitor**",
-            description=f"**Address:** `{ip}`",
+            title=f"🎮 {server_name}",
+            description=f"**Address:** `{ip}`\n**Version:** `{server_version}`",
             color=discord.Color.green() if online else discord.Color.red()
         )
 
         if online and status:
             was_last_offline = False
-            embed.add_field(
-                name="🟢 Status",
-                value="**Online**\n\u200b",
-                inline=True
-            )
-            embed.add_field(
-                name="👥 Players",
-                value=f"`{status.players.online}` / `{status.players.max}`",
-                inline=True
-            )
-            embed.add_field(
-                name="📡 Ping",
-                value=f"`{round(status.latency)} ms`",
-                inline=True
-            )
+            embed.add_field(name="🟢 Status", value="ONLINE\n\u200b", inline=True)
+            embed.add_field(name="👥 Players", value=f"`{status.players.online}` / `{status.players.max}`", inline=True)
+            embed.add_field(name="📡 Ping", value=f"`{round(status.latency)} ms`", inline=True)
 
             if status.players.sample:
                 names = ", ".join(p.name for p in status.players.sample)
-                embed.add_field(
-                    name="🧑 Currently Online",
-                    value=f"> {names}",
-                    inline=False
-                )
+                embed.add_field(name="Online players:", value=f"> {names}", inline=False)
         else:
-            embed.add_field(name="🔴 Status", value="**Offline**\n\u200b", inline=False)
+            embed.add_field(name="🔴 Status", value="OFFLINE\n\u200b", inline=False)
+            embed.add_field(
+                name="📜 Rules",
+                value="\n".join(SERVER_RULES),
+                inline=False
+            )
+
             if not was_last_offline:
                 try:
                     dm_user = await bot.create_dm(await bot.fetch_user(640208628242186243))
-                    await dm_user.send(
-                        f"The server `{ip}` is offline.\nKindest regards, Warden. {random.choice(list(fish_emojis))}"
-                    )
+                    await dm_user.send(f"The server `{ip}` is offline.\nKindest regards, Warden. {random.choice(list(fish_emojis))}")
                 except Exception:
                     pass
                 was_last_offline = True
 
-        now = int(time.time())
-        embed.add_field(
-            name="🕒 Last Update",
-            value=f"<t:{now}:R>",
-            inline=False
-        )
-
-        embed.set_footer(
-            text="By guy56890",
-            icon_url=bot.user.display_avatar.url
-        )
-        embed.set_image(url=banner_image)
+        embed.add_field(name="🕒 Last Update", value=f"<t:{now}:R>", inline=False)
+        embed.set_footer(text="By guy56890", icon_url=bot.user.display_avatar.url)
+        embed.set_image(url=banner_image_online if online else banner_image_offline)
         return embed
 
     # initial fetch
@@ -191,13 +181,12 @@ async def server_status(interaction: discord.Interaction, ip: str):
         while True:
             await asyncio.sleep(30)
             try:
-                # stop if deleted
-                try:
-                    await msg.channel.fetch_message(msg.id)
-                except discord.NotFound:
-                    print(f"Message for {ip} deleted — stopping update loop.")
-                    return
+                await msg.channel.fetch_message(msg.id)
+            except discord.NotFound:
+                print(f"Message for {ip} deleted — stopping update loop.")
+                return
 
+            try:
                 server = JavaServer.lookup(ip)
                 status = server.status()
                 online = True
@@ -209,6 +198,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
             await msg.edit(embed=new_embed)
 
     bot.loop.create_task(update_status())
+
 
 
 
