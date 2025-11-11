@@ -141,7 +141,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
 
         embed = discord.Embed(
             title=f"🎮 {server_name}",
-            description=f"**Address:** `{ip}`\n**Version:** `{server_version}`",
+            description=f"**Address:** `{ip}`\n**Version:** `{server_version}`\n**Type:**`Java Edition, Vanilla`",
             color=discord.Color.green() if online else discord.Color.red()
         )
 
@@ -149,7 +149,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
             if was_last_offline:
                 interaction.channel.send("<@1316429425847308449>", timeout=1)
                 was_last_offline = False
-                
+
             embed.add_field(name="🟢 Status", value="ONLINE\n\u200b", inline=True)
             embed.add_field(name="👥 Players", value=f"`{status.players.online}` / `{status.players.max}`", inline=True)
             embed.add_field(name="📡 Ping", value=f"`{round(status.latency)} ms`", inline=True)
