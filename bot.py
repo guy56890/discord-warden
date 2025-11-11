@@ -2,6 +2,8 @@ import os
 import json
 import discord
 import random
+import asyncio
+import time
 from discord import app_commands
 from discord.ext import commands, tasks
 from mcstatus import JavaServer
@@ -17,6 +19,10 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="$", intents=intents)
 
 AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis & shadows
+SERVER_MANAGER_ROLE_ID = 1303704931198435328  # replace with your actual role ID
+GUILD_ID = 1290601628142927924  # replace with your guild/server ID
+
+
 user_emojis = {}  # user_id: emoji
 fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬", "🦑", "🦐", "🦞", "🦀", "🐙", "🐋", "🐳", "🪼", "🪸", "🐚", "🐌", "🦭"}
 fish_toggle = False
@@ -96,6 +102,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 wasLastOffline = False
+
 @bot.tree.command(name="server_status", description="Monitor or display info for a Minecraft server")
 @app_commands.describe(ip="The IP of the Minecraft server to monitor (e.g. play.example.com)")
 async def server_status(interaction: discord.Interaction, ip: str):
@@ -104,16 +111,15 @@ async def server_status(interaction: discord.Interaction, ip: str):
         return
 
     await interaction.response.defer()
-    import time, asyncio, random
 
     SERVER_RULES = [
         "Don't grief anyone",
         "No cheats, hacks, x-rays or exploits",
         "Don't be a dickhead",
-        "Don't hop on end before we all agree to do so",
+        "Don't hop on End before we all agree to do so",
     ]
-    banner_image_online = "https://i.imgur.com/7QZ6xOa.png"
-    banner_image_offline = "https://i.imgur.com/XVbRiV2.png"
+
+    banner_image = "https://cdn.discordapp.com/banners/1421040299450568754/46fd58e5cc7729988520c67e6daa0819?size=1024"
 
     was_last_offline = False
 
@@ -121,10 +127,14 @@ async def server_status(interaction: discord.Interaction, ip: str):
         nonlocal was_last_offline
         now = int(time.time())
 
-        # Extract name/version if possible
         if status:
-            server_name = getattr(status.description, "get", lambda k, d=None: d)("text", str(status.description))
-            server_version = getattr(status.version, "name", "Unknown")
+            # Extract readable name and version
+            try:
+                desc = getattr(status.description, "get", lambda k, d=None: d)("text", str(status.description))
+            except Exception:
+                desc = str(status.description)
+            server_name = desc or "Unknown Server"
+            server_version = getattr(status.version, "name", "Unknown Version")
         else:
             server_name = "Unknown Server"
             server_version = "Unknown Version"
@@ -146,26 +156,35 @@ async def server_status(interaction: discord.Interaction, ip: str):
                 embed.add_field(name="Online players:", value=f"> {names}", inline=False)
         else:
             embed.add_field(name="🔴 Status", value="OFFLINE\n\u200b", inline=False)
-            embed.add_field(
-                name="📜 Rules",
-                value="\n".join(SERVER_RULES),
-                inline=False
-            )
+            embed.add_field(name="📜 Rules", value="\n".join(SERVER_RULES), inline=False)
 
+            # Notify all ServerManager role members if the server just went offline
             if not was_last_offline:
                 try:
-                    dm_user = await bot.create_dm(await bot.fetch_user(640208628242186243))
-                    await dm_user.send(f"The server `{ip}` is offline.\nKindest regards, Warden. {random.choice(list(fish_emojis))}")
-                except Exception:
-                    pass
-                was_last_offline = True
+                    guild = bot.get_guild(GUILD_ID)
+                    if guild:
+                        role = guild.get_role(SERVER_MANAGER_ROLE_ID)
+                        if role:
+                            for member in role.members:
+                                try:
+                                    dm = await member.create_dm()
+                                    await dm.send(
+                                        f"The server `{ip}` is offline.\nKindest regards, Warden. {random.choice(list(fish_emojis))}"
+                                    )
+                                    await asyncio.sleep(1)  # prevent rate limits
+                                except Exception:
+                                    continue
+                    was_last_offline = True
+                except Exception as e:
+                    print(f"Failed to DM ServerManager members: {e}")
 
         embed.add_field(name="🕒 Last Update", value=f"<t:{now}:R>", inline=False)
         embed.set_footer(text="By guy56890", icon_url=bot.user.display_avatar.url)
-        embed.set_image(url=banner_image_online if online else banner_image_offline)
+        embed.set_image(url=banner_image)
+
         return embed
 
-    # initial fetch
+    # Initial fetch
     try:
         server = JavaServer.lookup(ip)
         status = server.status()
