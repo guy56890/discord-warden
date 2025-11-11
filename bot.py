@@ -1,6 +1,7 @@
 import os
 import json
 import discord
+import random
 from discord import app_commands
 from discord.ext import commands, tasks
 from mcstatus import JavaServer
@@ -94,6 +95,8 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+wasLastOffline = False
+
 # --- Slash commands ---
 @bot.tree.command(name="coinflip", description="Flip a coin for admin or timeout")
 async def coinflip(interaction: discord.Interaction):
@@ -118,6 +121,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
         )
 
         if online and status:
+            wasLastOffline = False
             embed.add_field(
                 name="Status",
                 value="🟢 **Online**\n\u200b",
@@ -143,6 +147,9 @@ async def server_status(interaction: discord.Interaction, ip: str):
                 )
         else:
             embed.add_field(name="Status", value="🔴 **Offline**\n\u200b", inline=False)
+            if wasLastOffline == False:
+                bot.create_dm(640208628242186243).send(f"The server `{ip}` is offline.\nKindest regards, Warden. {fish_emojis[random.randint(0, len(fish_emojis)-1)]}")
+                wasLastOffline = True
 
         now = int(time.time())
         embed.set_footer(text=f"By guy56890 ")
