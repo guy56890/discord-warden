@@ -61,6 +61,18 @@ def save_data():
         json.dump(data, f, indent=4)
 
 
+class WhitelistView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)  # required for persistent view
+
+    @discord.ui.button(
+        label="Request Whitelist",
+        style=discord.ButtonStyle.grey,
+        emoji="📝",
+        custom_id="whitelist_button"  # must exist for persistence
+    )
+    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(WhitelistModal())
 
 # --- Bot events ---
 @bot.event
@@ -73,6 +85,8 @@ async def on_ready():
         print(f"Sync error: {e}")
 
     await bot.change_presence(status=discord.Status.offline)
+    bot.add_view(WhitelistView())
+
     print(f"Logged in as {bot.user}")
     channel = bot.get_channel(1435613283141947392)
     if channel:
@@ -100,6 +114,71 @@ async def on_message(message):
             pass
 
     await bot.process_commands(message)
+
+class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
+    answer = discord.ui.TextInput(
+        label="What is your Minecraft username?",
+        style=discord.TextStyle.short,
+        placeholder="guy56890",
+        max_length=16,
+        required=True
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        try:
+            guild = bot.get_guild(GUILD_ID)
+            if guild:
+                role = guild.get_role(SERVER_MANAGER_ROLE_ID)
+                if role:
+                    for member in role.members:
+                        try:
+                            dm = await member.create_dm()
+                            msg = await dm.send(
+                                f"The user {interaction.user.mention} has requested to be whitelisted.\n"
+                                f"Username: `{self.answer.value}`\n\n"
+                                f"React ✅ to confirm or ❌ to deny."
+                            )
+                            await msg.add_reaction("✅")
+                            await msg.add_reaction("❌")
+
+                            async def check(reaction, user):
+                                return (
+                                    user == member
+                                    and reaction.message.id == msg.id
+                                    and str(reaction.emoji) in ["✅", "❌"]
+                                )
+
+                            try:
+                                reaction, user = await bot.wait_for(
+                                    "reaction_add", timeout=3600, check=check
+                                )
+                                await msg.delete()
+                            except asyncio.TimeoutError:
+                                pass
+
+                        except Exception as e:
+                            print(f"Error sending DM: {e}")
+                            continue
+
+            await interaction.followup.send(
+                f"✅ Your whitelist request for `{self.answer.value}` has been sent to the admins!",
+                ephemeral=True
+            )
+
+        except Exception as e:
+            print(f"Failed to DM admins: {e}")
+            await interaction.followup.send(
+                "⚠️ An error occurred while sending your request.",
+                ephemeral=True
+            )
+
+
+
+
+
+
 
 wasLastOffline = False
 @bot.tree.command(
@@ -134,7 +213,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
 
     # Step 2: send independent message to channel
     channel = interaction.channel
-    msg = await channel.send(embed=discord.Embed(title="Fetching server info...", color=discord.Color.blue()))
+    msg = await channel.send(embed=discord.Embed(title="Fetching server info...", color=discord.Color.blue()), view=WhitelistView())
 
     async def make_embed(online, status=None):
         nonlocal was_last_offline
@@ -207,7 +286,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
         status = None
 
     embed = await make_embed(online, status)
-    await msg.edit(embed=embed)
+    await msg.edit(embed=embed, view=WhitelistView())
 
     # Step 4: update loop
     async def update_loop():
@@ -234,7 +313,7 @@ async def server_status(interaction: discord.Interaction, ip: str):
             # Generate and edit embed
             new_embed = await make_embed(online, status)
             try:
-                await msg.edit(embed=new_embed)
+                await msg.edit(embed=new_embed, view=WhitelistView())
             except discord.NotFound:
                 print(f"Message for {ip} deleted during edit — stopping update loop.")
                 return
@@ -242,8 +321,6 @@ async def server_status(interaction: discord.Interaction, ip: str):
                 continue
 
     bot.loop.create_task(update_loop())
-
-
 
 
 @bot.tree.command(name="emoji", description="Add or remove a user's emoji reaction")
