@@ -175,11 +175,6 @@ class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
             )
 
 
-
-
-
-
-
 wasLastOffline = False
 @bot.tree.command(
     name="server_status",
@@ -354,36 +349,27 @@ async def toggle_fish(interaction: discord.Interaction):
     state = "started" if fish_toggle else "stopped"
     await interaction.response.send_message(f"{state.capitalize()} the fish bombardement of Asbjørn!", ephemeral=True)
 
-@bot.tree.command(
-    name="shadow",
-    description="Add a user to the shadow list",
-)
-@app_commands.describe(user="The user to shadow")
-async def shadow(interaction: discord.Interaction, user: discord.Member):
-    if interaction.user.id != AUTHORIZED_ID:
-        await interaction.response.send_message("You are not allowed to use this.", ephemeral=True)
+@bot.tree.command(name="gamble", description="Gamble for gambler role")
+async def gamble(interaction: discord.Interaction):
+    rng = random.randint(1, 99999)
+    guild = interaction.guild
+    role = guild.get_role(1421069778361253908)
+
+    if interaction.channel_id != 1449003876937236501:  
+        await interaction.response.send_message("You can only use this command in <#1449003876937236501>.", ephemeral=True)
         return
 
-    shadowed_users[user.id] = user.status
-    save_data()
-    await interaction.response.send_message(f"Now shadowing {user.name}", ephemeral=True)
+    if rng == 1:
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message(
+            "You rolled **1** and earned the **Distinguished Gambler** role!"
+        )
+    else:
+        await interaction.response.send_message(
+            f"You rolled **{rng}**. No luck this time."
+        )
 
-# --- Shadow loop ---
-@tasks.loop(minutes=1)
-async def periodic_task():
-    channel = bot.get_channel(1435613283141947392)
-    if not channel:
-        return
 
-    for user_id, last_status in shadowed_users.items():
-        user = channel.guild.get_member(user_id)
-        if not user:
-            continue
-
-        if user.status != last_status:
-            await channel.send(f"**Shadow Update for {user.name}:** Status changed {last_status} -> {user.status}")
-            shadowed_users[user_id] = user.status
-            save_data()
 
 # --- Run bot ---
 bot.run(TOKEN)
