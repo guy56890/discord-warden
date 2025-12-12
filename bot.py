@@ -355,19 +355,33 @@ async def gamble(interaction: discord.Interaction):
     guild = interaction.guild
     role = guild.get_role(1421069778361253908)
 
-    if interaction.channel_id != 1449003876937236501:  
-        await interaction.response.send_message("You can only use this command in <#1449003876937236501>.", ephemeral=True)
+    # Restrict channel
+    if interaction.channel_id != 1449003876937236501:
+        await interaction.response.send_message(
+            "You can only use this command in <#1449003876937236501>.",
+            ephemeral=True
+        )
         return
 
+    # Winning roll
     if rng == 1:
         await interaction.user.add_roles(role)
-        await interaction.response.send_message(
-            "You rolled **1** and earned the **Distinguished Gambler** role!"
+
+        # Send the message and keep the Message object
+        msg = await interaction.response.send_message(
+            f"@everyone {interaction.user.mention} rolled **1** and earned the **Distinguished Gambler** role!",
+            allowed_mentions=discord.AllowedMentions(everyone=True)
         )
+
+        # interaction.response.send_message returns None, so we fetch the message
+        sent = await interaction.original_response()
+        await sent.pin()
+
     else:
         await interaction.response.send_message(
             f"You rolled **{rng}**. No luck this time."
         )
+
 
 
 
