@@ -351,7 +351,7 @@ async def toggle_fish(interaction: discord.Interaction):
 
 @bot.tree.command(name="gamble", description="Gamble for gambler role")
 async def gamble(interaction: discord.Interaction):
-    rng = random.randint(1, 99999)
+    rng = random.randint(1, 4999)
     guild = interaction.guild
     role = guild.get_role(1421069778361253908)
 
