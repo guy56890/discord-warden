@@ -318,7 +318,6 @@ async def server_status(interaction: discord.Interaction, ip: str):
 
     bot.loop.create_task(update_loop())
 
-
 @bot.tree.command(name="emoji", description="Add or remove a user's emoji reaction")
 @app_commands.describe(user="The user to modify", emoji="The emoji to assign (leave blank to remove)")
 async def emoji_cmd(interaction: discord.Interaction, user: discord.User, emoji: str = None):
@@ -383,16 +382,263 @@ async def gamble(interaction: discord.Interaction):
             f"You rolled **{rng}**. No luck this time."
         )
 
-class ImposterGameTypes(enum.Enum):
-    Questions = "Questions"
-    Words = "Words" 
 
-@bot.tree.command(name="impostergame", description="Play the Imposter Game")
-async def imposter_game(interaction: discord.Interaction, gameType: ImposterGameTypes):
-    await interaction.response.send_message(
-        f"The Imposter Game is currently under development. Stay tuned for updates! you cose {gameType}",
-        ephemeral=True
+    answer = discord.ui.TextInput(
+        label="What is your Minecraft username?",
+        style=discord.TextStyle.short,
+        placeholder="guy56890",
+        max_length=16,
+        required=True
     )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        try:
+            guild = bot.get_guild(GUILD_ID)
+            if guild:
+                role = guild.get_role(SERVER_MANAGER_ROLE_ID)
+                if role:
+                    for member in role.members:
+                        try:
+                            dm = await member.create_dm()
+                            msg = await dm.send(
+                                f"The user {interaction.user.mention} has requested to be whitelisted.\n"
+                                f"Username: `{self.answer.value}`\n\n"
+                                f"React ✅ to confirm or ❌ to deny."
+                            )
+                            await msg.add_reaction("✅")
+                            await msg.add_reaction("❌")
+
+                            async def check(reaction, user):
+                                return (
+                                    user == member
+                                    and reaction.message.id == msg.id
+                                    and str(reaction.emoji) in ["✅", "❌"]
+                                )
+
+                            try:
+                                reaction, user = await bot.wait_for(
+                                    "reaction_add", timeout=3600, check=check
+                                )
+                                await msg.delete()
+                            except asyncio.TimeoutError:
+                                pass
+
+                        except Exception as e:
+                            print(f"Error sending DM: {e}")
+                            continue
+
+            await interaction.followup.send(
+                f"✅ Your whitelist request for `{self.answer.value}` has been sent to the admins!",
+                ephemeral=True
+            )
+
+        except Exception as e:
+            print(f"Failed to DM admins: {e}")
+            await interaction.followup.send(
+                "⚠️ An error occurred while sending your request.",
+                ephemeral=True
+            )
+
+# --- Imposter Game ---
+class ImposterState(enum.Enum):
+    WAITING = 1
+    IN_PROGRESS = 2
+    VOTING = 3
+    RESULTS = 4
+
+class ImposterGame:
+    def __init__(self, host: discord.Member, gametype: str, channel: discord.TextChannel):
+        self.host = host
+        self.gametype = gametype
+        self.channel = channel
+        self.players: list[discord.Member] = []
+        self.imposter: discord.Member | None = None
+        self.state = ImposterState.WAITING
+        self.answers: dict[int, str] = {}
+        self.votes: dict[int, int | None] = {}  # voter_id -> target_id
+        self.category: dict | None = None
+
+    def reset(self):
+        self.imposter = None
+        self.state = ImposterState.WAITING
+        self.answers.clear()
+        self.votes.clear()
+        self.category = None
+
+# --- Example tables ---
+QUESTIONS_TABLE = [
+    {"real": "Whats the kindest animal?", "fake": "Whats the most seductive animal?"},
+    {"real": "How many minutes do you microwave popcorn", "fake": "How long is it?"}
+]
+
+WORDS_TABLE = [
+    {"word": "BANANA", "hint": "YELLOW"},
+    {"word": "COMPUTER", "hint": "ELECTRONIC"},
+    {"word": "GIRAFFE", "hint": "NECK"}
+]
+
+
+# Persistent view for join/start/leave/replay
+class ImposterView(discord.ui.View):
+    def __init__(self, game: ImposterGame):
+        super().__init__(timeout=None)
+        self.game = game
+
+    @discord.ui.button(label="Join", style=discord.ButtonStyle.green, custom_id="imposter_join")
+    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user in self.game.players:
+            return await interaction.response.send_message("You are already in the game!", ephemeral=True)
+        self.game.players.append(interaction.user)
+        await self.update_embed()
+        await interaction.response.send_message("✅ Joined the Imposter Game.", ephemeral=True)
+
+    @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, custom_id="imposter_leave")
+    async def leave(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user not in self.game.players:
+            return await interaction.response.send_message("You are not in the game!", ephemeral=True)
+        self.game.players.remove(interaction.user)
+        await self.update_embed()
+        await interaction.response.send_message("❌ Left the Imposter Game.", ephemeral=True)
+
+    @discord.ui.button(label="Start", style=discord.ButtonStyle.blurple, custom_id="imposter_start")
+    async def start(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.game.host:
+            return await interaction.response.send_message("Only the host can start the game!", ephemeral=True)
+        if len(self.game.players) < 0:
+            return await interaction.response.send_message("At least 3 players are required!", ephemeral=True)
+
+        self.game.state = ImposterState.IN_PROGRESS
+        self.game.imposter = random.choice(self.game.players)
+        await self.send_questions_or_words()
+        await interaction.response.send_message("🚀 Game started!", ephemeral=True)
+
+    @discord.ui.button(label="Replay", style=discord.ButtonStyle.gray, custom_id="imposter_replay")
+    async def replay(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.game.reset()
+        await self.update_embed()
+        await interaction.response.send_message("♻️ Game has been reset! Players can join again.", ephemeral=True)
+
+    async def update_embed(self):
+        embed = discord.Embed(
+            title=f"Imposter Game - {self.game.gametype.capitalize()} Mode",
+            description=f"Host: {self.game.host.display_name}\nPlayers: {len(self.game.players)}",
+            color=discord.Color.blurple()
+        )
+        if self.game.players:
+            embed.add_field(name="Players", value="\n".join(p.display_name for p in self.game.players), inline=False)
+        await self.message.edit(embed=embed)
+
+    async def send_questions_or_words(self):
+    # Pick a random category from the table
+        if self.game.gametype == "questions":
+            self.game.category = random.choice(QUESTIONS_TABLE)
+        else:  # words
+            self.game.category = random.choice(WORDS_TABLE)
+
+        # DM each player
+        for player in self.game.players:
+            try:
+                dm = await player.create_dm()
+                if self.game.gametype == "questions":
+                    real_q, fake_q = self.game.category["real"], self.game.category["fake"]
+                    q = fake_q if player == self.game.imposter else real_q
+                    await dm.send(f"📝 Your question:\n**{q}**")
+
+                    # Wait for their answer
+                    def check(m):
+                        return m.author == player and isinstance(m.channel, discord.DMChannel)
+
+                    try:
+                        msg = await bot.wait_for("message", timeout=120, check=check)
+                        self.game.answers[player] = msg.content  # store the answer
+                    except asyncio.TimeoutError:
+                        self.game.answers[player] = "No answer ⏱️"
+
+                else:  # words mode
+                    word = self.game.category["word"]
+                    hint = self.game.category["hint"]
+                    await dm.send(
+                        f"📝 The word is: **{word}**" 
+                        if player != self.game.imposter 
+                        else f"You are the imposter! Your hint is **{hint}**."
+                    )
+            except Exception as e:
+                print(f"Failed to DM {player.display_name}: {e}")
+    # --- Voting logic ---
+    async def start_voting(self):
+        class VoteView(discord.ui.View):
+            def __init__(self, game):
+                super().__init__(timeout=None)
+                self.game = game
+                for p in game.players:
+                    self.add_item(
+                        discord.ui.Button(
+                            label=p.display_name,
+                            style=discord.ButtonStyle.primary,
+                            custom_id=f"vote_{p.id}"
+                        )
+                    )
+
+            async def interaction_check(self, interaction: discord.Interaction) -> bool:
+                return interaction.user in self.game.players
+
+        view = VoteView(self)
+        vote_msg = await self.channel.send(
+            "⚡ Vote for who you think the imposter is!",
+            view=view
+        )
+
+        def check_vote(i: discord.Interaction):
+            return i.user in self.players and i.data["custom_id"].startswith("vote_")
+
+        while len(self.votes) < len(self.players):
+            interaction = await bot.wait_for("interaction", check=check_vote)
+            voted_id = int(interaction.data["custom_id"].split("_")[1])
+            voted_user = discord.utils.get(self.players, id=voted_id)
+            self.votes[interaction.user] = voted_user
+
+            # Announce vote in chat
+            await self.channel.send(f"🗳️ {interaction.user.display_name} voted for {voted_user.display_name}")
+
+            await interaction.response.send_message(f"You voted for {voted_user.display_name}", ephemeral=True)
+
+        await self.reveal_imposter()
+
+        embed = discord.Embed(title="🔍 Imposter Game Results", color=discord.Color.red())
+        embed.add_field(name="Outcome", value=msg_text, inline=False)
+        embed.add_field(name="Imposter Reveal", value=imposter_text, inline=False)
+        embed.add_field(name="Votes", value=breakdown, inline=False)
+        await interaction.channel.send(embed=embed)
+
+        # Reset for replay
+        self.game.state = ImposterState.RESULTS
+
+# --- Slash command to start the imposter game ---
+@bot.tree.command(name="imposter_game", description="Play the Imposter Game")
+@app_commands.choices(
+    gametype=[
+        app_commands.Choice(name="questions", value="questions"),
+        app_commands.Choice(name="words", value="words"),
+    ]
+)
+async def imposter_game(interaction: discord.Interaction, gametype: app_commands.Choice[str]):
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except discord.NotFound:
+        return
+
+    # Initialize game
+    game = ImposterGame(interaction.channel, interaction.user, gametype.value)
+
+    # Pick imposter
+    game.imposter = random.choice(game.players)
+
+    # DM questions/words
+    await game.send_questions_or_words()
+
+
 
 # --- Run bot ---
 bot.run(TOKEN)
