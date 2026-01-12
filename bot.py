@@ -1,5 +1,6 @@
 import os
 import json
+import enum
 import discord
 import random
 import asyncio
@@ -382,8 +383,16 @@ async def gamble(interaction: discord.Interaction):
             f"You rolled **{rng}**. No luck this time."
         )
 
+class ImposterGameTypes(enum.Enum):
+    Questions = "Questions"
+    Words = "Words" 
 
-
+@bot.tree.command(name="impostergame", description="Play the Imposter Game")
+async def imposter_game(interaction: discord.Interaction, gameType: ImposterGameTypes):
+    await interaction.response.send_message(
+        f"The Imposter Game is currently under development. Stay tuned for updates! you cose {gameType}",
+        ephemeral=True
+    )
 
 # --- Run bot ---
 bot.run(TOKEN)
