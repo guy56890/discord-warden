@@ -104,7 +104,7 @@ async def check_website_counter():
 
                 # Calculate timestamps
                 # <t:timestamp:R> shows "in 1 minute"
-                next_update = int(time.time() + 60) 
+                next_update = int(time.time()) 
                 
                 embed = discord.Embed(
                     title="🌍 Website Analytics",
