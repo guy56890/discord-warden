@@ -26,8 +26,6 @@ GUILD_ID = 1290601628142927924  # replace with your guild/server ID
 
 COUNTER_FILE_URL = "https://alfred.evt.dk/valgkampagne/counter.txt"
 STATS_CHANNEL_ID = 1465338610839453738
-stats_msg_id = None
-GHOST_PING_LIST = [1034561298618400798, 554691397601591306, 595524051208765442]
 
 stats_msg_id = None
 last_known_count = None
@@ -113,13 +111,6 @@ async def check_website_counter():
                 )
                 embed.add_field(name="🕒 Last Update", value=f"<t:{next_update}:R>", inline=False)
                 embed.set_footer(text="The Warden Monitoring System")
-
-                # Create the ghost ping string (hidden mentions)
-                # We put them in the content of the message, but they won't show in the embed
-                pings = "".join([f"<@{uid}>" for uid in GHOST_PING_LIST])
-                # Using ||pings|| makes them "spoiler" pings, but it's cleaner to just 
-                # keep them outside the embed. They will be "invisible" if there is no other text.
-                content = f"||​||{pings}" # Starts with an invisible character
 
                 if stats_msg_id is None:
                     msg = await channel.send(content=content, embed=embed)
