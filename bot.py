@@ -26,6 +26,8 @@ GUILD_ID = 1290601628142927924  # replace with your guild/server ID
 
 COUNTER_FILE_URL = "https://alfred.evt.dk/valgkampagne/counter.txt"
 STATS_CHANNEL_ID = 1465338610839453738
+stats_msg_id = None
+GHOST_PING_LIST = [1034561298618400798, 554691397601591306, 595524051208765442]
 
 stats_msg_id = None
 last_known_count = None
@@ -47,6 +49,7 @@ def load_data():
     if not os.path.isfile(DATA_FILE):
         with open(DATA_FILE, "w") as f:
             json.dump({"user_emojis": {}, "fish_toggle": False, "shadowed_users": {}}, f, indent=4)
+            
 
     # Load the data
     with open(DATA_FILE, "r") as f:
@@ -55,6 +58,8 @@ def load_data():
         fish_toggle = data.get("fish_toggle", False)
         shadowed_users_raw = data.get("shadowed_users", {})
         shadowed_users = {int(k): discord.Status[s] for k, s in shadowed_users_raw.items()}
+        stats_msg_id = data.get("stats_msg_id")
+        
 
 def save_data():
     # Make sure the directory exists (in case deleted)
@@ -62,7 +67,8 @@ def save_data():
     data = {
         "user_emojis": {str(k): v for k, v in user_emojis.items()},
         "fish_toggle": fish_toggle,
-        "shadowed_users": {str(k): str(v) for k, v in shadowed_users.items()}
+        "shadowed_users": {str(k): str(v) for k, v in shadowed_users.items()},
+        "stats_msg_id": stats_msg_id
     }
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
@@ -84,39 +90,49 @@ class WhitelistView(discord.ui.View):
 @tasks.loop(seconds=60)
 async def check_website_counter():
     global stats_msg_id, last_known_count
-    
+    import requests
+    import time
+
     try:
-        # 1. Fetch the counter from your FTP-linked website
         response = requests.get(COUNTER_FILE_URL, timeout=10)
         if response.status_code == 200:
             current_count = response.text.strip()
 
-            # 2. Only update if the number has actually changed
             if current_count != last_known_count:
                 channel = bot.get_channel(STATS_CHANNEL_ID)
-                if not channel:
-                    return
+                if not channel: return
 
+                # Calculate timestamps
+                # <t:timestamp:R> shows "in 1 minute"
+                next_update = int(time.time() + 60) 
+                
                 embed = discord.Embed(
                     title="🌍 Website Analytics",
                     description=f"Total Unique Visitors: **{current_count}**",
                     color=discord.Color.gold()
                 )
-                embed.set_footer(text="Auto-updates every minute")
+                embed.add_field(name="🕒 Next Update", value=f"<t:{next_update}:R>", inline=False)
+                embed.set_footer(text="The Warden Monitoring System")
+
+                # Create the ghost ping string (hidden mentions)
+                # We put them in the content of the message, but they won't show in the embed
+                pings = "".join([f"<@{uid}>" for uid in GHOST_PING_LIST])
+                # Using ||pings|| makes them "spoiler" pings, but it's cleaner to just 
+                # keep them outside the embed. They will be "invisible" if there is no other text.
+                content = f"||​||{pings}" # Starts with an invisible character
 
                 if stats_msg_id is None:
-                    # Send fresh message
-                    msg = await channel.send(embed=embed)
+                    msg = await channel.send(content=content, embed=embed)
                     stats_msg_id = msg.id
+                    save_data()
                 else:
-                    # Edit existing message
                     try:
                         msg = await channel.fetch_message(stats_msg_id)
-                        await msg.edit(embed=embed)
+                        await msg.edit(content=content, embed=embed)
                     except discord.NotFound:
-                        # If someone deleted the message, send a new one
-                        msg = await channel.send(embed=embed)
+                        msg = await channel.send(content=content, embed=embed)
                         stats_msg_id = msg.id
+                        save_data()
                 
                 last_known_count = current_count
                 
