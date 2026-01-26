@@ -8,6 +8,7 @@ import time
 from discord import app_commands
 from discord.ext import commands, tasks
 from mcstatus import JavaServer
+import requests # Ensure requests is imported at the top of your file
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -83,8 +84,6 @@ class WhitelistView(discord.ui.View):
 @tasks.loop(seconds=60)
 async def check_website_counter():
     global stats_msg_id, last_known_count
-    
-    import requests # Ensure requests is imported at the top of your file
     
     try:
         # 1. Fetch the counter from your FTP-linked website
