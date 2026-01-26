@@ -111,7 +111,7 @@ async def check_website_counter():
                     description=f"Total Unique Visitors: **{current_count}**",
                     color=discord.Color.gold()
                 )
-                embed.add_field(name="🕒 Next Update", value=f"<t:{next_update}:R>", inline=False)
+                embed.add_field(name="🕒 Last Update", value=f"<t:{next_update}:R>", inline=False)
                 embed.set_footer(text="The Warden Monitoring System")
 
                 # Create the ghost ping string (hidden mentions)
