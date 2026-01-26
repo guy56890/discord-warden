@@ -24,7 +24,7 @@ AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis & shadows
 SERVER_MANAGER_ROLE_ID = 1303704931198435328  # replace with your actual role ID
 GUILD_ID = 1290601628142927924  # replace with your guild/server ID
 
-COUNTER_FILE_URL = "https://alfred.evt.dk/valgkampange/counter.txt"
+COUNTER_FILE_URL = "https://alfred.evt.dk/valgkampagne/counter.txt"
 STATS_CHANNEL_ID = 1465338610839453738
 
 stats_msg_id = None
