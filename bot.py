@@ -113,15 +113,15 @@ async def check_website_counter():
                 embed.set_footer(text="The Warden Monitoring System")
 
                 if stats_msg_id is None:
-                    msg = await channel.send(content=content, embed=embed)
+                    msg = await channel.send(embed=embed)
                     stats_msg_id = msg.id
                     save_data()
                 else:
                     try:
                         msg = await channel.fetch_message(stats_msg_id)
-                        await msg.edit(content=content, embed=embed)
+                        await msg.edit(embed=embed)
                     except discord.NotFound:
-                        msg = await channel.send(content=content, embed=embed)
+                        msg = await channel.send(embed=embed)
                         stats_msg_id = msg.id
                         save_data()
                 
