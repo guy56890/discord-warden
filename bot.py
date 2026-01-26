@@ -23,6 +23,11 @@ AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis & shadows
 SERVER_MANAGER_ROLE_ID = 1303704931198435328  # replace with your actual role ID
 GUILD_ID = 1290601628142927924  # replace with your guild/server ID
 
+COUNTER_FILE_URL = "https://alfred.evt.dk/valgkampange/counter.txt"
+STATS_CHANNEL_ID = 1465338610839453738
+
+stats_msg_id = None
+last_known_count = None
 
 user_emojis = {}  # user_id: emoji
 fish_emojis = {"🐟", "🐠", "🐡", "🦈", "🐬", "🦑", "🦐", "🦞", "🦀", "🐙", "🐋", "🐳", "🪼", "🪸", "🐚", "🐌", "🦭"}
@@ -75,6 +80,50 @@ class WhitelistView(discord.ui.View):
     async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(WhitelistModal())
 
+@tasks.loop(seconds=60)
+async def check_website_counter():
+    global stats_msg_id, last_known_count
+    
+    import requests # Ensure requests is imported at the top of your file
+    
+    try:
+        # 1. Fetch the counter from your FTP-linked website
+        response = requests.get(COUNTER_FILE_URL, timeout=10)
+        if response.status_code == 200:
+            current_count = response.text.strip()
+
+            # 2. Only update if the number has actually changed
+            if current_count != last_known_count:
+                channel = bot.get_channel(STATS_CHANNEL_ID)
+                if not channel:
+                    return
+
+                embed = discord.Embed(
+                    title="🌍 Website Analytics",
+                    description=f"Total Unique Visitors: **{current_count}**",
+                    color=discord.Color.gold()
+                )
+                embed.set_footer(text="Auto-updates every minute")
+
+                if stats_msg_id is None:
+                    # Send fresh message
+                    msg = await channel.send(embed=embed)
+                    stats_msg_id = msg.id
+                else:
+                    # Edit existing message
+                    try:
+                        msg = await channel.fetch_message(stats_msg_id)
+                        await msg.edit(embed=embed)
+                    except discord.NotFound:
+                        # If someone deleted the message, send a new one
+                        msg = await channel.send(embed=embed)
+                        stats_msg_id = msg.id
+                
+                last_known_count = current_count
+                
+    except Exception as e:
+        print(f"Counter Task Error: {e}")
+
 # --- Bot events ---
 @bot.event
 async def on_ready():
@@ -87,6 +136,9 @@ async def on_ready():
 
     await bot.change_presence(status=discord.Status.offline)
     bot.add_view(WhitelistView())
+
+    if not check_website_counter.is_running():
+        check_website_counter.start()
 
     print(f"Logged in as {bot.user}")
     channel = bot.get_channel(1435613283141947392)
