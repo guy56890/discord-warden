@@ -207,7 +207,7 @@ class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
                             await msg.add_reaction("✅")
                             await msg.add_reaction("❌")
 
-                            async def check(reaction, user):
+                            def check(reaction, user):
                                 return (
                                     user == member
                                     and reaction.message.id == msg.id
