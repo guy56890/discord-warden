@@ -161,7 +161,6 @@ async def on_message(message):
 
     if message.channel.id == CAT_GIF_ID_CHANNEL_ID:
         if message.content != "https://tenor.com/view/ilunushu-stellarnushu-anuakhil-gif-286136175020695697":
-            await message.reply("Only the sacred cat gif is allowed in this channel! 🐱", ephemeral=True)
             await message.delete()
 
     if message.author.id == 426986093355859968 and fish_toggle:
