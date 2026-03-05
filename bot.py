@@ -22,6 +22,7 @@ bot = commands.Bot(command_prefix="$", intents=intents)
 AUTHORIZED_ID = 554691397601591306  # only this user can manage emojis & shadows
 SERVER_MANAGER_ROLE_ID = 1303704931198435328  # replace with your actual role ID
 GUILD_ID = 1290601628142927924  # replace with your guild/server ID
+CAT_GIF_ID_CHANNEL_ID = 1479073147427885097
 
 
 user_emojis = {}  # user_id: emoji
@@ -99,6 +100,10 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return
+
+    if message.channel.id == CAT_GIF_ID_CHANNEL_ID:
+        if message.content != "https://tenor.com/view/ilunushu-stellarnushu-anuakhil-gif-286136175020695697":
+            await message.delete()
 
     if message.author.id == 426986093355859968 and fish_toggle:
         for fish_emoji in fish_emojis:
