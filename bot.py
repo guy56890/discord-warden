@@ -184,7 +184,7 @@ class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
         label="What is your Minecraft username?",
         style=discord.TextStyle.short,
         placeholder="guy56890",
-        max_length=16,
+        max_length=20,
         required=True
     )
 
@@ -218,6 +218,11 @@ class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
                                 reaction, user = await bot.wait_for(
                                     "reaction_add", timeout=3600, check=check
                                 )
+
+                                if str(reaction.emoji) == "✅":
+                                    userDM = interaction.user.create_dm()
+                                    await userDM.send(f"✅ Your whitelist for the minecraft server has been approved! The username {interaction.user.mention} now has access.")
+
                                 await msg.delete()
                             except asyncio.TimeoutError:
                                 pass
