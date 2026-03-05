@@ -220,11 +220,9 @@ class WhitelistModal(discord.ui.Modal, title="Whitelist Request"):
                                 )
 
                                 if str(reaction.emoji) == "✅":
-                                    userDM = interaction.user.create_dm()
-                                    await userDM.send(f"✅ Your whitelist for the minecraft server has been approved! The username {interaction.user.mention} now has access.")
+                                    await interaction.user.send(f"✅ Your whitelist for the minecraft server has been approved! The username {interaction.user.mention} now has access.")
                                 else:
-                                    userDM = interaction.user.create_dm()
-                                    await userDM.send(f"❌ Your whitelist for the minecraft server has been denied. The username {interaction.user.mention} does not have access.")
+                                    await interaction.user.send(f"❌ Your whitelist for the minecraft server has been denied. The username {interaction.user.mention} does not have access.")
 
                                 await msg.delete()
                             except asyncio.TimeoutError:
