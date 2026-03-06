@@ -499,7 +499,7 @@ async def gamble(interaction: discord.Interaction):
                 "⚠️ An error occurred while sending your request.",
                 ephemeral=True
             )
-    tryGamble()
+    await tryGamble()
 # --- Imposter Game ---
 class ImposterState(enum.Enum):
     WAITING = 1
