@@ -423,7 +423,7 @@ async def gamble(interaction: discord.Interaction):
     rng = random.randint(1, 4999)
     guild = interaction.guild
     role = guild.get_role(1421069778361253908)
-    async def tryGamble()
+    async def tryGamble():
         # Restrict channel
         if interaction.channel_id != 1449003876937236501:
             await interaction.response.send_message(
@@ -499,7 +499,7 @@ async def gamble(interaction: discord.Interaction):
                 "⚠️ An error occurred while sending your request.",
                 ephemeral=True
             )
-
+    tryGamble()
 # --- Imposter Game ---
 class ImposterState(enum.Enum):
     WAITING = 1
