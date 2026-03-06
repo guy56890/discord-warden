@@ -423,44 +423,34 @@ async def gamble(interaction: discord.Interaction):
     rng = random.randint(1, 4999)
     guild = interaction.guild
     role = guild.get_role(1421069778361253908)
+    async def tryGamble()
+        # Restrict channel
+        if interaction.channel_id != 1449003876937236501:
+            await interaction.response.send_message(
+                "You can only use this command in <#1449003876937236501>.",
+                ephemeral=True
+            )
+            return
 
-    # Restrict channel
-    if interaction.channel_id != 1449003876937236501:
-        await interaction.response.send_message(
-            "You can only use this command in <#1449003876937236501>.",
-            ephemeral=True
-        )
-        return
+        # Winning roll
+        if rng == 1:
+            await interaction.user.add_roles(role)
 
-    # Winning roll
-    if rng == 1:
-        await interaction.user.add_roles(role)
+            # Send the message and keep the Message object
+            msg = await interaction.response.send_message(
+                f"@everyone {interaction.user.mention} rolled **1** and earned the **Distinguished Gambler** role!",
+                allowed_mentions=discord.AllowedMentions(everyone=True)
+            )
 
-        # Send the message and keep the Message object
-        msg = await interaction.response.send_message(
-            f"@everyone {interaction.user.mention} rolled **1** and earned the **Distinguished Gambler** role!",
-            allowed_mentions=discord.AllowedMentions(everyone=True)
-        )
+            # interaction.response.send_message returns None, so we fetch the message
+            sent = await interaction.original_response()
+            await sent.pin()
 
-        # interaction.response.send_message returns None, so we fetch the message
-        sent = await interaction.original_response()
-        await sent.pin()
+        else:
+            await interaction.response.send_message(
+                f"You rolled **{rng}**. No luck this time."
+            )
 
-    else:
-        await interaction.response.send_message(
-            f"You rolled **{rng}**. No luck this time."
-        )
-
-
-    answer = discord.ui.TextInput(
-        label="What is your Minecraft username?",
-        style=discord.TextStyle.short,
-        placeholder="guy56890",
-        max_length=16,
-        required=True
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         try:
